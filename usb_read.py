@@ -1,3 +1,6 @@
+'''
+pip install pyserial is needed
+'''
 import click
 import serial
 from serial.tools import list_ports
