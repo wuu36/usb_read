@@ -6,6 +6,7 @@ import serial
 from serial.tools import list_ports
 from msvcrt import getch
 import threading
+from collections import deque
 
 '''
 defination:
@@ -29,25 +30,45 @@ def run(port, baudrate, parity='N', stopbits=1):
         print('--- Failed to open {} ---'.format(port))
         return 0
     print('--- {} is connected. Press Ctrl+C to quit ---'.format(port))
+    queue = deque()
     def read_input(): 
         while device.is_open:
             ch = getch()
             # print(ch)
             if ch == b'\x03':
                 break
+            else:
+                queue.append(ch)
 
     thread = threading.Thread(target=read_input)
     thread.start()
     while thread.is_alive():
+        #if disconnected from usb, break, use try except
+        try:
+            line = device.readline()
+            if line:
+                print(line.decode(),end='', flush=True)
+        except IOError:
+            print('--- {} is disconnected ---'.format(port))
+            break
         # print("tread running")
-        line = device.readline()
-        if line:
-            # print(line)
-            # print(line.decode(), end='')
-            print(line.decode(errors='replace'), end='',flush=True)  
+        # line = device.readline()
+        # if line:
+        #     # print(line)
+        #     # print(line.decode(), end='')
+        #     print(line.decode(errors='replace'), end='',flush=True)  
 
     device.close()
-    print('--- {} is disconnected ---'.format(port)) 
+    print('--- {} is closed ---'.format(port)) 
+    if thread.is_alive():
+        print('--- Press R to reconnect the device, otherwise to exit ---')
+        thread.join()
+        # print(queue[-1])
+        if queue[-1] in (b'r', b'R'):
+            return 1
+        # # print(queue[0])
+        # if getch() == b'r' or b'R':
+        #     return 1
 
     return 0
 
